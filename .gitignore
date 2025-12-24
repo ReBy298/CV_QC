@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual env
+.venv/
+venv/
+ENV/
+env/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs / temp
+*.log
+*.tmp
+
+# Outputs (keep images if you want, but ignore heavy outputs by default)
+outputs/
+*.qcf.json
+corrected*.json
+
+# Whole slide images / pathology artifacts (VERY large)
+*.svs
+*.tiff
+*.tif
+*.ndpi
+*.mrxs
+*.scn
+*.svslide
+*.bif
+*.dzi
+*.zip
+
+# If you want to keep qc_overlay.png in the repo, REMOVE this line:
+# qc_overlay*.png
