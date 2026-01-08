@@ -216,15 +216,29 @@ def transform_qcf_full(
     return out
 
 
-def draw_rois_on_thumb(fixed_thumb_bgr: np.ndarray, rois_thumb: List[np.ndarray]) -> np.ndarray:
-    """Quick overlay for sanity check."""
-    out = fixed_thumb_bgr.copy()
-    for pts in rois_thumb:
+def draw_rois_on_thumb(fixed_thumb_bgr, rois_thumb_with_labels, alpha=0.30):
+    """
+    rois_thumb_with_labels: List[Tuple[str, np.ndarray]] = [(label, pts_thumb), ...]
+    """
+    base = fixed_thumb_bgr.copy()
+    overlay = base.copy()
+
+    for label, pts in rois_thumb_with_labels:
         if pts.shape[0] < 3:
             continue
         pts_i = np.round(pts).astype(np.int32).reshape((-1, 1, 2))
-        cv2.polylines(out, [pts_i], isClosed=True, color=(0, 255, 0), thickness=2)
-    return out
+        lab = (label or "").upper()
+
+        if lab == "RECTANGLE":
+            # Scan box: outline only (do NOT fill)
+            cv2.polylines(base, [pts_i], True, (0, 255, 0), 4)
+        else:
+            # Tissue/outside ROIs: filled + outline
+            cv2.fillPoly(overlay, [pts_i], (0, 255, 0))
+            cv2.polylines(base, [pts_i], True, (0, 255, 0), 2)
+
+    return cv2.addWeighted(overlay, alpha, base, 1 - alpha, 0)
+
 
 
 # -----------------------------
@@ -514,15 +528,15 @@ def main():
     # -----------------------------
     Sf = scale_matrix(fixed.w / float(fixed_full_w), fixed.h / float(fixed_full_h))
 
-    rois_thumb: List[np.ndarray] = []
+    rois_thumb_with_labels: List[Tuple[str, np.ndarray]] = []
     for roi in qcf_out.get("ROIContainer", {}).get("ROIs", []):
         coords = roi.get("ROICoordinate", [])
         if isinstance(coords, list) and len(coords) >= 3:
             pts_full = np.array(coords, dtype=np.float64)
             pts_thumb = apply_homography(Sf, pts_full)
-            rois_thumb.append(pts_thumb)
-
-    qc_img = draw_rois_on_thumb(fixed.img_bgr, rois_thumb)
+            label = roi.get("Label", "")
+            rois_thumb_with_labels.append((label, pts_thumb))
+    qc_img = draw_rois_on_thumb(fixed.img_bgr, rois_thumb_with_labels)
     cv2.imwrite(args.qc_out, qc_img)
 
     print("[OK] Wrote:", args.qcf_out)
